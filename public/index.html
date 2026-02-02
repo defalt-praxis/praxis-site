@@ -23,6 +23,131 @@
             box-sizing: border-box;
         }
 
+        /* Boot Sequence Loader */
+        .boot-loader {
+            position: fixed;
+            inset: 0;
+            background: #050505;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s;
+        }
+
+        .boot-loader.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .boot-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .boot-mark {
+            width: 12px;
+            height: 12px;
+            background: #06b6d4;
+            border-radius: 3px;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+            animation: bootPulse 0.8s ease-in-out infinite;
+        }
+
+        @keyframes bootPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+            }
+            50% { 
+                transform: scale(1.2);
+                box-shadow: 0 0 30px rgba(6, 182, 212, 0.8), 0 0 60px rgba(6, 182, 212, 0.3);
+            }
+        }
+
+        .boot-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            color: #fafafa;
+        }
+
+        .boot-terminal {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #52525b;
+            text-align: left;
+            width: 280px;
+            line-height: 1.8;
+        }
+
+        .boot-line {
+            opacity: 0;
+            transform: translateY(5px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .boot-line.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .boot-line.success {
+            color: #22c55e;
+        }
+
+        .boot-line.accent {
+            color: #06b6d4;
+        }
+
+        .boot-progress {
+            width: 200px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 1px;
+            margin-top: 24px;
+            overflow: hidden;
+        }
+
+        .boot-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #06b6d4, #8b5cf6);
+            border-radius: 1px;
+            transition: width 0.3s ease-out;
+        }
+
+        /* Scanline effect on loader */
+        .boot-loader::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(6, 182, 212, 0.015) 2px,
+                rgba(6, 182, 212, 0.015) 4px
+            );
+            pointer-events: none;
+            animation: bootScanlines 8s linear infinite;
+        }
+
+        @keyframes bootScanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(40px); }
+        }
+
+        /* Hide body scroll during boot */
+        body.booting {
+            overflow: hidden;
+        }
+
         :root {
             /* Backgrounds */
             --bg-primary: #050505;
@@ -1357,7 +1482,25 @@
         }
     </style>
 </head>
-<body>
+<body class="booting">
+    <!-- Boot Sequence Loader -->
+    <div class="boot-loader" id="bootLoader">
+        <div class="boot-logo">
+            <div class="boot-mark"></div>
+            <span class="boot-text">PRAX</span>
+        </div>
+        <div class="boot-terminal">
+            <div class="boot-line" data-delay="100">> initializing systems...</div>
+            <div class="boot-line" data-delay="400">> loading neural cores...</div>
+            <div class="boot-line" data-delay="700">> connecting to agent network...</div>
+            <div class="boot-line success" data-delay="1000">> all systems nominal</div>
+            <div class="boot-line accent" data-delay="1200">> PRAX v2.0 ONLINE</div>
+        </div>
+        <div class="boot-progress">
+            <div class="boot-progress-bar" id="bootProgress"></div>
+        </div>
+    </div>
+
     <nav>
         <a href="#" class="logo">
             <span class="logo-mark"></span>
@@ -2127,6 +2270,51 @@
                     btn.style.transform = 'translate(0, 0)';
                 });
             });
+        })();
+
+        // Boot Sequence Animation
+        (function() {
+            const loader = document.getElementById('bootLoader');
+            const progressBar = document.getElementById('bootProgress');
+            const bootLines = document.querySelectorAll('.boot-line');
+            const body = document.body;
+            
+            // Skip boot on subsequent visits within session
+            const hasBooted = sessionStorage.getItem('prax-booted');
+            if (hasBooted) {
+                loader.classList.add('hidden');
+                body.classList.remove('booting');
+                return;
+            }
+
+            let progress = 0;
+            const totalDuration = 1800; // Total boot time in ms
+            const progressInterval = 30;
+            
+            // Animate progress bar
+            const progressTimer = setInterval(() => {
+                progress += (100 / (totalDuration / progressInterval));
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(progressTimer);
+                }
+                progressBar.style.width = progress + '%';
+            }, progressInterval);
+
+            // Reveal terminal lines sequentially
+            bootLines.forEach(line => {
+                const delay = parseInt(line.dataset.delay) || 0;
+                setTimeout(() => {
+                    line.classList.add('visible');
+                }, delay);
+            });
+
+            // Complete boot sequence
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                body.classList.remove('booting');
+                sessionStorage.setItem('prax-booted', 'true');
+            }, totalDuration + 400);
         })();
     </script>
 </body>
