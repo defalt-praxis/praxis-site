@@ -2,14 +2,5 @@
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/api/agent", "destination": "/api/agent.json" }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Content-Type", "value": "application/json" }
-      ]
-    }
   ]
 }
