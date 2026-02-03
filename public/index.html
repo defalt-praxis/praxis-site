@@ -323,6 +323,41 @@
             animation-delay: var(--pulse-delay), var(--drift-delay);
         }
 
+        /* Scroll Progress Indicator */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 2px;
+            background: var(--gradient-accent);
+            z-index: 1001;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .scroll-progress::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 80px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s ease-in-out infinite;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .scroll-progress.active::after {
+            opacity: 1;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
         /* Navigation */
         nav {
             position: fixed;
@@ -335,6 +370,20 @@
             align-items: center;
             z-index: 100;
             background: linear-gradient(to bottom, var(--bg-primary) 0%, transparent 100%);
+            transition: all 0.4s var(--ease-out-expo);
+        }
+
+        nav.scrolled {
+            padding: 14px 32px;
+            background: rgba(5, 5, 5, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        nav.scrolled .logo-mark {
+            box-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent-glow);
         }
 
         .logo {
@@ -1483,6 +1532,9 @@
     </style>
 </head>
 <body class="booting">
+    <!-- Scroll Progress Indicator -->
+    <div class="scroll-progress" id="scrollProgress"></div>
+
     <!-- Boot Sequence Loader -->
     <div class="boot-loader" id="bootLoader">
         <div class="boot-logo">
@@ -2315,6 +2367,50 @@
                 body.classList.remove('booting');
                 sessionStorage.setItem('prax-booted', 'true');
             }, totalDuration + 400);
+        })();
+
+        // Scroll Progress & Nav Glassmorphism
+        (function() {
+            const nav = document.querySelector('nav');
+            const scrollProgress = document.getElementById('scrollProgress');
+            let ticking = false;
+            
+            function updateScroll() {
+                const scrollTop = window.scrollY;
+                const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const scrollPercent = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+                
+                // Update scroll progress bar
+                scrollProgress.style.width = scrollPercent + '%';
+                
+                // Add/remove active class for shimmer effect when scrolling
+                if (scrollPercent > 0 && scrollPercent < 100) {
+                    scrollProgress.classList.add('active');
+                } else {
+                    scrollProgress.classList.remove('active');
+                }
+                
+                // Nav glassmorphism effect when scrolled past threshold
+                if (scrollTop > 60) {
+                    nav.classList.add('scrolled');
+                } else {
+                    nav.classList.remove('scrolled');
+                }
+                
+                ticking = false;
+            }
+            
+            function onScroll() {
+                if (!ticking) {
+                    requestAnimationFrame(updateScroll);
+                    ticking = true;
+                }
+            }
+            
+            window.addEventListener('scroll', onScroll, { passive: true });
+            
+            // Initial check
+            updateScroll();
         })();
     </script>
 </body>
